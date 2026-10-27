@@ -48,25 +48,48 @@ async function shell(active, mainHtml, opts = {}) {
   await loadMe();
   const name = esc(S ? S.academy_name : 'الأكاديمية');
   document.title = name;
-  const dashLink = !ME ? ''
-    : ME.role === 'student' ? '<a href="/student.html">🎓 لوحتي</a>'
-    : ME.role === 'teacher' ? '<a href="/tutor.html">👨‍🏫 لوحة المعلم</a>'
-    : '';
-  const authBtn = !ME
-    ? '<a class="btn btn-a" style="padding:7px 14px" href="/auth.html">دخول / حساب جديد</a>'
-    : `<span class="u">أهلًا ${esc(ME.name)}</span> <button class="btn btn-g" style="padding:7px 14px" id="logoutBtn">خروج</button>`;
-  const sideHtml = `<aside class="sidebar">
-        <button class="side-x" id="sideX">✕</button>
-        <a href="/" data-a="home">🏠 الرئيسية</a>
+  const role = ME ? ME.role : 'guest';
+  const groupsLink = (S && S.enable_groups === '1') ? '<a href="/#groups" data-a="groups">👥 المجموعات</a>' : '';
+  let navMain = '', navLegal = '';
+  if (role === 'student') {
+    navMain = `<a href="/" data-a="home">🏠 الرئيسية</a>
         <a href="/#teachers" data-a="teachers">👨‍🏫 المعلمون</a>
-        <a href="/#groups" data-a="groups">👥 المجموعات</a>
-        <a href="/join.html" data-a="join">➕ انضم كمعلم</a>
-        ${dashLink}
-        <div class="sec">روابط مهمة</div>
-        <a href="/page.html?k=terms">📜 شروط الاستخدام</a>
+        ${groupsLink}
+        <a href="/student.html">🎓 لوحتي</a>
+        <a href="/student.html?tab=profile">👤 ملفي الشخصي</a>`;
+    navLegal = `<a href="/page.html?k=terms">📜 شروط الاستخدام</a>
+        <a href="/page.html?k=privacy">🔒 سياسة الخصوصية</a>
+        <a href="/page.html?k=student">🎒 واجبات الطالب</a>`;
+  } else if (role === 'teacher') {
+    navMain = `<a href="/" data-a="home">🏠 الرئيسية</a>
+        <a href="/tutor.html">👨‍🏫 لوحة المعلم</a>
+        <a href="/tutor.html?tab=page">📝 صفحتي وأسعاري</a>`;
+    navLegal = `<a href="/page.html?k=terms">📜 شروط الاستخدام</a>
+        <a href="/page.html?k=privacy">🔒 سياسة الخصوصية</a>
+        <a href="/page.html?k=teacher">👨‍🏫 شروط المعلم</a>`;
+  } else if (role === 'admin') {
+    navMain = `<a href="/">🏠 الرئيسية</a>`;
+    navLegal = `<a href="/page.html?k=terms">📜 شروط الاستخدام</a>
+        <a href="/page.html?k=privacy">🔒 سياسة الخصوصية</a>`;
+  } else {
+    navMain = `<a href="/" data-a="home">🏠 الرئيسية</a>
+        <a href="/#teachers" data-a="teachers">👨‍🏫 المعلمون</a>
+        ${groupsLink}
+        <a href="/join.html" data-a="join">➕ انضم كمعلم</a>`;
+    navLegal = `<a href="/page.html?k=terms">📜 شروط الاستخدام</a>
         <a href="/page.html?k=privacy">🔒 سياسة الخصوصية</a>
         <a href="/page.html?k=student">🎒 واجبات الطالب</a>
-        <a href="/page.html?k=teacher">👨‍🏫 شروط المعلم</a>
+        <a href="/page.html?k=teacher">👨‍🏫 شروط المعلم</a>`;
+  }
+  const profUrl = role === 'student' ? '/student.html?tab=profile' : role === 'teacher' ? '/tutor.html?tab=page' : '';
+  const authBtn = !ME
+    ? '<a class="btn btn-a" style="padding:7px 14px" href="/auth.html">دخول / حساب جديد</a>'
+    : `${profUrl ? `<a class="u" style="color:#fff;text-decoration:none" href="${profUrl}">أهلًا ${esc(ME.name)}</a>` : `<span class="u">أهلًا ${esc(ME.name)}</span>`} <button class="btn btn-g" style="padding:7px 14px" id="logoutBtn">خروج</button>`;
+  const sideHtml = `<aside class="sidebar">
+        <button class="side-x" id="sideX">✕</button>
+        ${navMain}
+        <div class="sec">روابط مهمة</div>
+        ${navLegal}
       </aside>`;
   document.body.innerHTML = `
     <div class="topbar">

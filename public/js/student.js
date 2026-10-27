@@ -106,5 +106,7 @@
       <p class="muted">زرار "🎥 ادخل الحصة" بيظهر في كارت الحصة بعد اعتماد الدفع.</p>
     </div>`;
   }
-  showLessons();
+  const wantTab = new URLSearchParams(location.search).get('tab');
+  const wantBtn = wantTab && document.querySelector(`#dTabs button[data-t="${wantTab}"]`);
+  if (wantBtn) wantBtn.click(); else showLessons();
 })();

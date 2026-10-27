@@ -83,6 +83,14 @@ async function renderTeacher(main, id) {
   const cur = esc(S.currency || '');
   const canPrivate = S.enable_private === '1' && t.price_private > 0;
   const canGroups = S.enable_groups === '1' && t.groups && t.groups.length;
+  let noBookMsg = '';
+  if (!canPrivate && !canGroups) {
+    noBookMsg = (S.enable_private !== '1' && S.enable_groups !== '1')
+      ? 'الحجز متوقف مؤقتًا من الإدارة ⏸'
+      : 'المعلم لم يفعّل الحجز بعد — جرّب معلمًا آخر أو تواصل مع الدعم 💬';
+  } else if (!canPrivate) {
+    noBookMsg = 'البرايفت غير متاح لهذا المعلم — يمكنك الانضمام لإحدى مجموعاته بالأسفل 👇';
+  }
   main.innerHTML = `
     <div class="card">
       <div class="phead">
@@ -96,9 +104,8 @@ async function renderTeacher(main, id) {
       <p>${esc(t.bio || '')}</p>
       ${t.schedule_text ? `<p>📅 <b>المواعيد المتاحة:</b> ${esc(t.schedule_text)}</p>` : ''}
       ${t.video_url ? `<p><a href="${esc(t.video_url)}" target="_blank">🎬 شاهد فيديو تعريفي</a></p>` : ''}
-      <div class="row2">
-        ${canPrivate ? `<button class="btn btn-p btn-big" id="bookPriv">👤 احجز برايفت — ${t.price_private} ${cur}</button>` : ''}
-        ${!canPrivate && !canGroups ? '<p class="muted">الحجز متوقف مؤقتًا</p>' : ''}
+      <div>
+        ${canPrivate ? `<button class="btn btn-p btn-big" id="bookPriv">👤 احجز برايفت — ${t.price_private} ${cur}</button>` : (noBookMsg ? `<p class="muted">${noBookMsg}</p>` : '')}
       </div>
     </div>
     ${canGroups ? `<div class="card"><h3 style="margin-top:0">👥 مجموعات ${esc(t.name)}</h3>
@@ -130,7 +137,23 @@ function paintMethodInfo() {
 }
 async function openBook({ kind, teacherId, groupId = 0, title = '', price = 0 }) {
   if (!ME) { location.href = '/auth.html?next=' + encodeURIComponent(location.pathname + location.search); return; }
-  if (ME.role !== 'student') { toast('الحجز متاح لحسابات الطلاب فقط 🎓'); return; }
+  if (ME.role !== 'student') {
+    const old = document.querySelector('.modal');
+    if (old) old.remove();
+    const d = document.createElement('div');
+    d.className = 'modal show';
+    d.innerHTML = `<div class="mbox">
+      <button class="mclose" id="nbX">✕</button>
+      <h3 style="margin-top:0">🎓 الحجز بحساب طالب فقط</h3>
+      <p>إنت داخل حاليًا بحساب <b>${ME.role === 'teacher' ? 'معلم 👨‍🏫' : 'الإدارة 🎛️'}</b> — والحجز متاح لحسابات الطلاب فقط.</p>
+      <p class="muted">اعمل حساب طالب مجاني في دقيقة وجرّب الحجز بنفسك 👇</p>
+      <a class="btn btn-p btn-big" href="/auth.html?next=${encodeURIComponent(location.pathname + location.search)}">دخول / حساب طالب 🚀</a>
+    </div>`;
+    document.body.appendChild(d);
+    $('nbX').onclick = () => d.remove();
+    d.addEventListener('click', (e) => { if (e.target === d) d.remove(); });
+    return;
+  }
   const cur = esc(S.currency || '');
   const old = document.querySelector('.modal');
   if (old) old.remove();

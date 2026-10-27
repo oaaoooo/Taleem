@@ -177,5 +177,7 @@
       toast(j.ok ? 'اتغيرت ✅' : (j.error || 'خطأ'));
     };
   }
-  showBooks();
+  const wantTab = new URLSearchParams(location.search).get('tab');
+  const wantBtn = wantTab && document.querySelector(`#tTabs button[data-t="${wantTab}"]`);
+  if (wantBtn) wantBtn.click(); else showBooks();
 })();
