@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html dir="rtl" lang="ar">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>انضم كمعلم</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎓</text></svg>">
+<link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+<script src="/js/layout.js"></script>
+<script>
+(async () => {
+  await shell('join', `<div class="card" style="max-width:560px;margin:0 auto">
+    <h2 style="margin-top:0">👨‍🏫 انضم كمعلم</h2>
+    <p class="muted">املأ البيانات وهنراجع طلبك ونكلمك — اقرأ <a href="/page.html?k=teacher" target="_blank">شروط انضمام المعلم</a> الأول</p>
+    <label class="f">الاسم بالكامل</label><input id="jName">
+    <div class="row2">
+      <div><label class="f">رقم الموبايل 📱</label><input id="jPhone" inputmode="tel"></div>
+      <div><label class="f">واتساب (لو مختلف)</label><input id="jWa" inputmode="tel"></div>
+    </div>
+    <label class="f">المادة 📚</label><select id="jSubject"></select>
+    <label class="f">نبذة عن خبرتك (20 حرف على الأقل)</label><textarea id="jBio"></textarea>
+    <div class="row2">
+      <div><label class="f">سعر البرايفت المقترح 👤</label><input id="jPp" type="number" min="0" value="100"></div>
+      <div><label class="f">سعر المجموعة المقترح 👥</label><input id="jPg" type="number" min="0" value="50"></div>
+    </div>
+    <label style="display:flex;gap:6px;font-size:13px;margin-top:10px">
+      <input type="checkbox" id="jAccept" style="width:auto"> أوافق على <a href="/page.html?k=teacher" target="_blank">شروط انضمام المعلم وواجباته والعقوبات</a>
+    </label>
+    <button class="btn btn-p btn-big" id="jGo">إرسال الطلب 📩</button>
+    <div id="jDone"></div>
+  </div>`);
+  $('jSubject').innerHTML = '<option value="">اختار المادة...</option>' + (S.subjects || []).map(s => `<option>${esc(s)}</option>`).join('');
+  $('jGo').onclick = async () => {
+    const btn = $('jGo');
+    btn.disabled = true; btn.textContent = 'جاري الإرسال... ⏳';
+    const j = await api('/api/apply', 'POST', {
+      name: $('jName').value, phone: $('jPhone').value, whatsapp: $('jWa').value,
+      subject: $('jSubject').value, bio: $('jBio').value,
+      price_private: $('jPp').value, price_group: $('jPg').value, accept: $('jAccept').checked
+    });
+    btn.disabled = false; btn.textContent = 'إرسال الطلب 📩';
+    if (!j.ok) { toast(j.error || 'خطأ'); return; }
+    $('jDone').innerHTML = '<div class="card" style="background:#ecfdf5;margin-top:12px">✅ <b>وصل طلبك بنجاح!</b><br>هنراجعه ونكلمك على رقمك قريب 🙏</div>';
+    btn.style.display = 'none';
+  };
+})();
+</script>
+</body>
+</html>

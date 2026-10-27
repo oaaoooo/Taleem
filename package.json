@@ -1,0 +1,16 @@
+{
+  "name": "taleem-platform",
+  "version": "1.0.0",
+  "description": "Taleem — online tutoring marketplace (Hono API Node + Cloudflare Workers + Neon)",
+  "type": "module",
+  "scripts": {
+    "start": "node server-node.js"
+  },
+  "dependencies": {
+    "@hono/node-server": "^2.0.0",
+    "@neondatabase/serverless": "^1.2.0",
+    "better-sqlite3": "^11.7.0",
+    "dotenv": "^16.0.0",
+    "hono": "^4.0.0"
+  }
+}

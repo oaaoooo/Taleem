@@ -1,0 +1,8 @@
+# Taleem — Cloudflare Workers config (deploy: npx wrangler@3 deploy)
+name = "taleem"
+main = "worker.js"
+compatibility_date = "2025-01-01"
+
+[assets]
+directory = "./public"
+not_found_handling = "none"

@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html dir="rtl" lang="ar">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>صفحة</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎓</text></svg>">
+<link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+<script src="/js/layout.js"></script>
+<script>
+(async () => {
+  const k = new URLSearchParams(location.search).get('k') || 'terms';
+  await shell('', '<div class="card"><div id="pgBody"><p class="muted">جاري التحميل...</p></div></div>');
+  const j = await api('/api/page/' + encodeURIComponent(k));
+  $('pgBody').innerHTML = j.ok
+    ? `<h2 style="margin-top:0">${esc(j.title)}</h2><div class="legal-body">${esc(j.body)}</div>`
+    : `<p>${esc(j.error || 'غير موجود')}</p>`;
+  document.title = (j.ok ? j.title + ' | ' : '') + (S ? S.academy_name : '');
+})();
+</script>
+</body>
+</html>
