@@ -116,3 +116,19 @@ th { background: #f8fafc; white-space: nowrap; }
   .hero h1 { font-size: 21px; }
   table { font-size: 12px; }
 }
+
+/* admin sidebar layout */
+.admin-layout { display: flex; gap: 14px; align-items: flex-start; }
+.admin-side { width: 200px; flex-shrink: 0; background: var(--card); border: 1px solid var(--line);
+  border-radius: 14px; padding: 10px; position: sticky; top: 70px; display: flex; flex-direction: column; gap: 4px; }
+.admin-side button { border: none; background: none; border-radius: 10px; padding: 10px 12px;
+  font-family: inherit; font-size: 13px; cursor: pointer; text-align: right; color: var(--ink); }
+.admin-side button:hover { background: #eef6f1; }
+.admin-side button.on { background: var(--green); color: #fff; font-weight: bold; }
+.admin-side button.on .pill { background: rgba(255,255,255,.25) !important; color: #fff !important; }
+.admin-main { flex: 1; min-width: 0; }
+@media (max-width: 760px) {
+  .admin-layout { flex-direction: column; }
+  .admin-side { width: 100%; position: static; flex-direction: row; overflow-x: auto; }
+  .admin-side button { white-space: nowrap; }
+}

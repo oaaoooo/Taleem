@@ -1,7 +1,7 @@
 // admin.js — full control panel
 let ST = null;
 (async () => {
-  await shell('', `<div id="aBody"></div>`);
+  await shell('', `<div id="aBody"></div>`, { noSide: true });
   const main = $('aBody');
   if (!ME || ME.role !== 'admin') {
     main.innerHTML = `<div class="card" style="max-width:400px;margin:30px auto;text-align:center">
@@ -20,7 +20,8 @@ let ST = null;
       <div><button class="btn-mini btn-g" id="muteBtn">🔔 تنبيه</button>
       <a class="btn btn-g btn-mini" style="text-decoration:none" href="/" target="_blank">👁 عرض الموقع</a></div>
     </div>
-    <div class="tabs" id="aTabs">
+    <div class="admin-layout">
+    <aside class="admin-side" id="aTabs">
       <button data-t="home" class="on">📊 الرئيسية</button>
       <button data-t="books">📅 الحجوزات <span id="bdPay"></span></button>
       <button data-t="teachers">👨‍🏫 المعلمون</button>
@@ -31,7 +32,8 @@ let ST = null;
       <button data-t="revs">⭐ التقييمات <span id="bdRev"></span></button>
       <button data-t="sets">⚙️ الإعدادات</button>
       <button data-t="legal">📜 النصوص القانونية</button>
-    </div><div id="aMain"></div>`;
+    </aside><div class="admin-main" id="aMain"></div>
+    </div>`;
   const m = $('aMain');
   const T = {
     home: showHome, books: () => showBooks(1), teachers: showTeachers, apps: showApps,

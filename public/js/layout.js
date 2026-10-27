@@ -43,7 +43,7 @@ function starsHtml(rating, count) {
 }
 function imgSrc(id) { return id ? '/img/' + id : '/images/avatar.svg'; }
 
-async function shell(active, mainHtml) {
+async function shell(active, mainHtml, opts = {}) {
   await loadBootstrap();
   await loadMe();
   const name = esc(S ? S.academy_name : 'الأكاديمية');
@@ -55,14 +55,7 @@ async function shell(active, mainHtml) {
   const authBtn = !ME
     ? '<a class="btn btn-a" style="padding:7px 14px" href="/auth.html">دخول / حساب جديد</a>'
     : `<span class="u">أهلًا ${esc(ME.name)}</span> <button class="btn btn-g" style="padding:7px 14px" id="logoutBtn">خروج</button>`;
-  document.body.innerHTML = `
-    <div class="topbar">
-      <a class="brand" href="/">🎓 ${name}</a>
-      <span class="sp"></span>${authBtn}
-    </div>
-    ${S && S.announcement ? `<div class="announce">${esc(S.announcement)}</div>` : ''}
-    <div class="shell">
-      <aside class="sidebar">
+  const sideHtml = `<aside class="sidebar">
         <a href="/" data-a="home">🏠 الرئيسية</a>
         <a href="/#teachers" data-a="teachers">👨‍🏫 المعلمون</a>
         <a href="/#groups" data-a="groups">👥 المجموعات</a>
@@ -73,7 +66,15 @@ async function shell(active, mainHtml) {
         <a href="/page.html?k=privacy">🔒 سياسة الخصوصية</a>
         <a href="/page.html?k=student">🎒 واجبات الطالب</a>
         <a href="/page.html?k=teacher">👨‍🏫 شروط المعلم</a>
-      </aside>
+      </aside>`;
+  document.body.innerHTML = `
+    <div class="topbar">
+      <a class="brand" href="/">🎓 ${name}</a>
+      <span class="sp"></span>${authBtn}
+    </div>
+    ${S && S.announcement ? `<div class="announce">${esc(S.announcement)}</div>` : ''}
+    <div class="shell">
+      ${opts.noSide ? '' : sideHtml}
       <main class="main">${mainHtml}</main>
     </div>
     <div class="footer">

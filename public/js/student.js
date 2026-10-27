@@ -4,7 +4,7 @@
       <button data-t="lessons" class="on">📅 حصصي</button>
       <button data-t="profile">👤 بياناتي</button>
       <button data-t="guide">🎥 إزاي أدخل الحصة؟</button>
-    </div><div id="dBody"></div>`);
+    </div><div id="dBody"></div>`, { noSide: true });
   if (!ME || ME.role !== 'student') { location.href = '/auth.html?next=/student.html'; return; }
   const main = $('dBody');
   document.querySelectorAll('#dTabs button').forEach(b => b.onclick = () => {
