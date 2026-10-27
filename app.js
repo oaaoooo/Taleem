@@ -856,6 +856,13 @@ export async function createApp({ q, sessionSecret }) {
       await q`DELETE FROM students WHERE id = ${c.req.param('id')}`;
       return c.json({ ok: true });
     }
+    if (b.act === 'resetpw') {
+      const np = String(b.new_password || '');
+      if (np.length < 6) return c.json({ ok: false, error: 'الباسورد 6 حروف على الأقل' });
+      const h = await hashPassword(np, PEPPER);
+      await q`UPDATE students SET password = ${h} WHERE id = ${c.req.param('id')}`;
+      return c.json({ ok: true });
+    }
     return c.json({ ok: false, error: 'أمر غير معروف' });
   });
 

@@ -212,7 +212,7 @@ let ST = null;
       <label class="f">فيديو تعريفي</label><input id="etVid${id}" dir="ltr" value="${esc(t.video_url || '')}">
       <div class="row2">
         <div><label class="f">عمولة خاصة % (فاضي = الافتراضية ${esc(S.commission_default || 30)}%)</label><input id="etComm${id}" type="number" value="${Number(t.commission) >= 0 ? t.commission : ''}" placeholder="فاضي"></div>
-        <div><label class="f">باسورد جديد (اختياري)</label><input id="etPw${id}" placeholder="سيبه فاضي لو مش عايز تغير"></div></div>
+        <div><label class="f">باسورد جديد (اختياري) <a href="javascript:void(0)" onclick="genPw(${id})">🎲 توليد</a></label><input id="etPw${id}" placeholder="سيبه فاضي لو مش عايز تغير"></div></div>
       <label class="f">الصورة 📷</label><input type="file" id="etImg${id}" accept="image/*">
       <div style="display:flex;gap:10px;margin-top:8px;flex-wrap:wrap">
         <label><input type="checkbox" id="etAct${id}" ${t.active ? 'checked' : ''} style="width:auto"> نشط ✅</label>
@@ -290,6 +290,7 @@ let ST = null;
           <td>📱 <span dir="ltr">${esc(s.phone || '—')}</span><br>👨‍👩‍👦 ${s.guardian_phone ? `<a dir="ltr" href="${waLink(s.guardian_phone)}" target="_blank">💬 ${esc(s.guardian_phone)}</a>` : '—'}</td>
           <td>${esc(s.country || '')} / ${esc(s.grade || '')}</td><td>${s.bookings}</td>
           <td><button class="btn-mini btn-g" onclick="stToggle(${s.id})">${s.active ? 'إيقاف ⏸' : 'تشغيل ▶'}</button>
+          <button class="btn-mini btn-b" style="background:#dbeafe" onclick="stPw(${s.id},'${esc(s.name)}')">🔑 باسورد</button>
           <button class="btn-mini btn-r" style="background:#fee2e2" onclick="stDel(${s.id})">حذف</button></td></tr>`).join('')}</table></div>`;
     };
     $('sqGo').onclick = load;
@@ -304,6 +305,18 @@ let ST = null;
     const j = await api('/api/admin/students/' + id, 'POST', { act: 'delete' });
     toast(j.ok ? 'اتحذف' : (j.error || 'خطأ'));
     if (j.ok) showStudents();
+  };
+  window.stPw = async (id, name) => {
+    const temp = Math.random().toString(36).slice(2, 10);
+    const np = prompt(`باسورد جديد لـ ${name} (عدّله لو عايز):`, temp);
+    if (!np) return;
+    const j = await api('/api/admin/students/' + id, 'POST', { act: 'resetpw', new_password: np });
+    if (!j.ok) { toast(j.error || 'خطأ'); return; }
+    prompt(`✅ اتصفّر! انسخ الباسورد وابعته واتساب (يغيّره بعد الدخول):`, np);
+  };
+  window.genPw = (id) => {
+    $('etPw' + id).value = Math.random().toString(36).slice(2, 10);
+    toast('اتولّد باسورد مؤقت — دوس حفظ وابعته للمعلم 🎲');
   };
 
   async function showGroups() {

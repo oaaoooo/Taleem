@@ -16,6 +16,7 @@
         <input type="checkbox" id="liRem" checked style="width:auto"> تذكرني على هذا الجهاز ✅
       </label>
       <button class="btn btn-p btn-big" id="liGo">دخول 🚀</button>
+      <div style="text-align:center;margin-top:10px"><a href="javascript:void(0)" id="forgotLink">نسيت كلمة المرور؟ 🤔</a></div>
     </div>
     <div id="paneReg" style="display:none">
       <label class="f">اسم الطالب بالكامل 👦</label>
@@ -78,5 +79,37 @@
     if (!j.ok) { toast(j.error || 'خطأ'); btn.disabled = false; btn.textContent = 'إنشاء الحساب 🎉'; return; }
     toast('اتعمل حسابك بنجاح 🎉');
     setTimeout(() => goNext('student'), 600);
+  };
+  $('forgotLink').onclick = () => {
+    const old = document.querySelector('.modal');
+    if (old) old.remove();
+    const d = document.createElement('div');
+    d.className = 'modal show';
+    const wa = (S.admin_whatsapp || '').replace(/\D/g, '');
+    d.innerHTML = `<div class="mbox">
+      <button class="mclose" id="fgX">✕</button>
+      <h3 style="margin-top:0">🔑 استعادة كلمة المرور</h3>
+      <p class="muted">اكتب رقم موبايلك المسجل وهنوصلك بالإدارة على واتساب تبعتلك باسورد جديد</p>
+      <label class="f">أنا</label>
+      <select id="fgRole"><option value="student">🎓 طالب</option><option value="teacher">👨‍🏫 معلم</option></select>
+      <label class="f">رقم الموبايل المسجل 📱</label>
+      <input id="fgPhone" inputmode="tel" placeholder="الرقم اللي سجلت بيه">
+      ${wa ? '<button class="btn btn-w btn-big" id="fgGo">إرسال طلب الاستعادة واتساب 💬</button>'
+        : '<p style="color:#dc2626">رقم واتساب الدعم غير مسجل حاليًا — حاول لاحقًا</p>'}
+    </div>`;
+    document.body.appendChild(d);
+    $('fgX').onclick = () => d.remove();
+    d.addEventListener('click', (e) => { if (e.target === d) d.remove(); });
+    $('fgRole').value = $('liRole').value;
+    $('fgPhone').value = $('liPhone').value;
+    if ($('fgGo')) $('fgGo').onclick = () => {
+      const ph = $('fgPhone').value.replace(/\D/g, '');
+      if (ph.length < 7) { toast('اكتب رقم الموبايل المسجل صح'); return; }
+      const who = $('fgRole').value === 'teacher' ? 'معلم' : 'طالب';
+      const msg = `سلام عليكم 🙏 نسيت كلمة المرور — حساب ${who} — رقمي المسجل: ${ph} — اسم المنصة: ${S.academy_name}`;
+      window.open(`https://wa.me/${wa}?text=${encodeURIComponent(msg)}`, '_blank');
+      d.remove();
+      toast('اتفتح واتساب — ابعت الرسالة والإدارة هترد عليك بباسورد جديد 🙏', 4000);
+    };
   };
 })();
