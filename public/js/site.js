@@ -2,9 +2,18 @@
 // works with both /teacher.html (local) and /teacher (Cloudflare clean URLs)
 const isTeacherPage = /\/teacher(\.html)?$/.test(location.pathname);
 
+window.toggleFav = (e, id, btn) => {
+  e.preventDefault();
+  const on = favToggle(id);
+  btn.classList.toggle('on', on);
+  toast(on ? 'اتضاف للمفضلين ❤️' : 'اتشال من المفضلين');
+  if (window._favOnly) applyTfilt();
+};
+
 function teacherCard(t) {
   const cur = esc(S.currency || '');
   return `<div class="tcard">
+    <button class="fav${favHas(t.id) ? ' on' : ''}" onclick="toggleFav(event,${t.id},this)" title="المفضلون ❤️">❤️</button>
     ${t.featured ? '<span class="feat">⭐ مميز</span>' : ''}
     <img src="${imgSrc(t.img_id)}" alt="" loading="lazy">
     <h3>${esc(t.name)}</h3>
@@ -57,8 +66,14 @@ async function renderHome(main) {
       <div class="step"><span class="n">3️⃣</span>ادفع بأي طريقة تناسبك</div>
       <div class="step"><span class="n">4️⃣</span>ادخل الحصة لايف 🎥</div>
     </div>
-    <div class="card" id="teachers"><h2 style="margin-top:0">👨‍🏫 المعلمون <small class="muted">(${teachers.length})</small></h2>
-      <div class="grid" id="tGrid">${teachers.map(teacherCard).join('') || '<p class="muted">لا يوجد معلمون حاليًا</p>'}</div>
+    <div class="card" id="teachers"><h2 class="sec-t">👨‍🏫 المعلمون <small class="muted" id="tCount"></small></h2>
+      <div class="filters">
+        <input type="search" id="qName" placeholder="دوّر باسم المعلم 🔍">
+        <select id="qSubj"><option value="">كل المواد 📚</option>${subjects.map(s => `<option>${esc(s)}</option>`).join('')}</select>
+        <select id="qSort"><option value="rate">الأعلى تقييمًا ⭐</option><option value="pp">الأرخص برايفت 👤</option><option value="pg">الأرخص مجموعة 👥</option></select>
+        <div class="seg"><button id="qFav">❤️ المفضلون</button></div>
+      </div>
+      <div class="grid" id="tGrid"></div>
     </div>
     ${S.enable_groups === '1' ? `<div class="card" id="groups"><h2 style="margin-top:0">👥 مجموعات متاحة</h2>
       <div class="grid">${groups.map(groupCard).join('') || '<p class="muted">لا توجد مجموعات مفتوحة حاليًا — تابعنا قريبًا 🙏</p>'}</div>
@@ -68,11 +83,33 @@ async function renderHome(main) {
       <p class="muted">قدّم طلبك في دقيقة وابدأ التدريس معنا بعد القبول</p>
       <a class="btn btn-a" href="/join.html">قدّم كمعلم ➕</a>
     </div>`;
-  $('fGo').onclick = async () => {
-    const sub = $('fSubject').value;
-    const j = await api('/api/teachers' + (sub ? '?subject=' + encodeURIComponent(sub) : ''));
-    $('tGrid').innerHTML = (j.ok && j.teachers.length)
-      ? j.teachers.map(teacherCard).join('') : '<p class="muted">لا يوجد معلمون لهذه المادة حاليًا</p>';
+  window._allT = teachers;
+  window._favOnly = false;
+  window.applyTfilt = () => {
+    const q = ($('qName').value || '').trim();
+    const sub = $('qSubj').value;
+    const sort = $('qSort').value;
+    let list = window._allT.filter(t =>
+      (!q || t.name.includes(q)) && (!sub || t.subject === sub) && (!window._favOnly || favHas(t.id)));
+    if (sort === 'pp') list = [...list].sort((a, b) => (a.price_private || 1e9) - (b.price_private || 1e9));
+    else if (sort === 'pg') list = [...list].sort((a, b) => (a.price_group || 1e9) - (b.price_group || 1e9));
+    else list = [...list].sort((a, b) => (b.rating - a.rating) || (b.ratings_count - a.ratings_count));
+    $('tGrid').innerHTML = list.map(teacherCard).join('') ||
+      `<div class="empty"><span class="big">🔍</span><p class="muted">${window._favOnly ? 'مفيش مفضلين لسه — دوس ❤️ على أي معلم' : 'لا يوجد معلمون بهذا البحث'}</p></div>`;
+    $('tCount').textContent = `(${list.length})`;
+  };
+  $('qName').oninput = applyTfilt;
+  $('qSubj').onchange = applyTfilt;
+  $('qSort').onchange = applyTfilt;
+  $('qFav').onclick = () => {
+    window._favOnly = !window._favOnly;
+    $('qFav').classList.toggle('on', window._favOnly);
+    applyTfilt();
+  };
+  applyTfilt();
+  $('fGo').onclick = () => {
+    $('qSubj').value = $('fSubject').value;
+    applyTfilt();
     document.getElementById('teachers').scrollIntoView({ behavior: 'smooth' });
   };
 }
@@ -105,8 +142,13 @@ async function renderTeacher(main, id) {
       <p>${esc(t.bio || '')}</p>
       ${t.schedule_text ? `<p>📅 <b>المواعيد المتاحة:</b> ${esc(t.schedule_text)}</p>` : ''}
       ${t.video_url ? `<p><a href="${esc(t.video_url)}" target="_blank">🎬 شاهد فيديو تعريفي</a></p>` : ''}
-      <div>
-        ${canPrivate ? `<button class="btn btn-p btn-big" id="bookPriv">👤 احجز برايفت — ${t.price_private} ${cur}</button>` : (noBookMsg ? `<p class="muted">${noBookMsg}</p>` : '')}
+      <div class="bookbox">
+        ${canPrivate ? `<button class="btn btn-p btn-big" style="margin-top:0" id="bookPriv">👤 احجز برايفت — ${t.price_private} ${cur}</button>` : (noBookMsg ? `<p class="muted" style="margin:0">${noBookMsg}</p>` : '')}
+      </div>
+      <div class="share-row">
+        <button class="btn btn-g" id="favT">${favHas(t.id) ? '❤️ في المفضلين' : '🤍 ضيف للمفضلين'}</button>
+        <a class="btn btn-w" target="_blank" href="https://wa.me/?text=${encodeURIComponent('شوف المعلم ' + t.name + ' (' + t.subject + ') على ' + (S.academy_name || '') + ': ' + location.href)}">مشاركة واتساب 💬</a>
+        <button class="btn btn-b" id="copyT">📋 نسخ الرابط</button>
       </div>
     </div>
     ${canGroups ? `<div class="card"><h3 style="margin-top:0">👥 مجموعات ${esc(t.name)}</h3>
@@ -117,7 +159,27 @@ async function renderTeacher(main, id) {
         <b>${esc(r.sname)}</b> <span class="stars">${'★'.repeat(r.rating)}${'☆'.repeat(5 - r.rating)}</span>
         <div>${esc(r.comment || '')}</div></div>`).join('') || '<p class="muted">لا توجد تقييمات بعد</p>'}
     </div>`;
-  if (canPrivate) $('bookPriv').onclick = () => openBook({ kind: 'private', teacherId: t.id, price: t.price_private, title: t.name });
+  if (canPrivate) $('bookPriv').onclick = () => openBook({ kind: 'private', teacherId: t.id, price: t.price_private, title: t.name, sched: t.schedule_text });
+  $('favT').onclick = () => {
+    const on = favToggle(t.id);
+    $('favT').textContent = on ? '❤️ في المفضلين' : '🤍 ضيف للمفضلين';
+    toast(on ? 'اتضاف للمفضلين ❤️' : 'اتشال من المفضلين');
+  };
+  $('copyT').onclick = async () => {
+    try { await navigator.clipboard.writeText(location.href); toast('اتنسخ الرابط 📋', 2000, 'ok'); }
+    catch { prompt('انسخ رابط المعلم:', location.href); }
+  };
+  // similar teachers (same subject)
+  const sim = await api('/api/teachers?subject=' + encodeURIComponent(t.subject));
+  if (sim.ok) {
+    const others = sim.teachers.filter(x => x.id !== t.id).slice(0, 3);
+    if (others.length) {
+      const div = document.createElement('div');
+      div.className = 'card';
+      div.innerHTML = `<h3 class="sec-t">👨‍🏫 معلمون مشابهون (${esc(t.subject)})</h3><div class="grid">${others.map(teacherCard).join('')}</div>`;
+      main.appendChild(div);
+    }
+  }
 }
 
 // ---------- booking modal ----------
@@ -136,7 +198,7 @@ function paintMethodInfo() {
     ? `<b>${esc(m.name)}</b><br>📌 <b dir="ltr">${esc(m.account)}</b><br><small class="muted">${esc(m.note || '')}</small>`
     : `<b>${esc(m.name)}</b><br><small class="muted">${esc(m.note || '')}</small>`;
 }
-async function openBook({ kind, teacherId, groupId = 0, title = '', price = 0 }) {
+async function openBook({ kind, teacherId, groupId = 0, title = '', price = 0, sched = '' }) {
   if (!ME) { location.href = '/auth.html?next=' + encodeURIComponent(location.pathname + location.search); return; }
   if (ME.role !== 'student') {
     const old = document.querySelector('.modal');
@@ -165,7 +227,8 @@ async function openBook({ kind, teacherId, groupId = 0, title = '', price = 0 })
     <h3 style="margin-top:0">${kind === 'private' ? '👤 حجز حصة برايفت' : '👥 الاشتراك في مجموعة'}</h3>
     <p class="muted">${esc(title)} — <b>${price} ${cur}</b></p>
     ${kind === 'private' ? `<label class="f">المعاد المناسب ليك 📅</label>
-      <input id="bkSlot" placeholder="مثال: السبت 5 مساءً">` : `<p class="muted">📌 معاد المجموعة ثابت حسب جدول المعلم</p>`}
+      <input id="bkSlot" placeholder="مثال: السبت 5 مساءً">
+      ${sched ? `<p class="hint">📅 مواعيد المعلم المعلنة: ${esc(sched)}</p>` : ''}` : `<p class="muted">📌 معاد المجموعة ثابت حسب جدول المعلم</p>`}
     ${payMethodsHtml()}
     <label class="f">إثبات التحويل 🧾</label>
     <input id="bkProof" placeholder="رقم التليفون المحوِّل منه أو رقم العملية">
@@ -206,7 +269,7 @@ async function openBook({ kind, teacherId, groupId = 0, title = '', price = 0 })
 (async () => {
   if (isTeacherPage) {
     const id = new URLSearchParams(location.search).get('id');
-    await shell('teachers', '<div id="pageBody"><div class="card"><p class="muted">جاري التحميل...</p></div></div>');
+    await shell('teachers', '<div id="pageBody"><div class="card"><p class="muted">جاري التحميل...</p></div></div>', { title: 'صفحة المعلم' });
     renderTeacher(document.querySelector('.main'), id);
   } else {
     await shell('home', '<div id="pageBody"></div>');

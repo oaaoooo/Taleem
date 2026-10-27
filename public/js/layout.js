@@ -12,13 +12,56 @@ async function api(url, method = 'GET', body) {
   });
   return r.json().catch(() => ({ ok: false, error: 'خطأ في الاتصال' }));
 }
-function toast(msg, ms = 2800) {
+function toast(msg, ms = 2800, type = '') {
   let t = document.querySelector('.toast');
   if (!t) { t = document.createElement('div'); t.className = 'toast'; document.body.appendChild(t); }
   t.textContent = msg;
-  t.classList.add('show');
+  t.className = 'toast show' + (type ? ' ' + type : '');
   clearTimeout(t._h);
   t._h = setTimeout(() => t.classList.remove('show'), ms);
+}
+// generic modal builder — returns {el, close}
+function openModal(html) {
+  const old = document.querySelector('.modal');
+  if (old) old.remove();
+  const d = document.createElement('div');
+  d.className = 'modal show';
+  d.innerHTML = `<div class="mbox">${html}</div>`;
+  document.body.appendChild(d);
+  const close = () => d.remove();
+  d.addEventListener('click', (e) => { if (e.target === d || e.target.closest('[data-close]')) close(); });
+  const escH = (e) => { if (e.key === 'Escape') { close(); document.removeEventListener('keydown', escH); } };
+  document.addEventListener('keydown', escH);
+  return { el: d, close };
+}
+// password eye toggle — call after render: eyeFor('inputId')
+function eyeFor(id) {
+  const inp = typeof id === 'string' ? document.getElementById(id) : id;
+  if (!inp || inp.dataset.eye) return;
+  inp.dataset.eye = '1';
+  const w = document.createElement('span');
+  w.className = 'pw-wrap';
+  inp.parentNode.insertBefore(w, inp);
+  w.appendChild(inp);
+  const b = document.createElement('button');
+  b.type = 'button'; b.className = 'pw-eye'; b.textContent = '👁';
+  b.onclick = () => {
+    inp.type = inp.type === 'password' ? 'text' : 'password';
+    b.textContent = inp.type === 'password' ? '👁' : '🙈';
+  };
+  w.appendChild(b);
+}
+// favorites (localStorage, per-student)
+function favList() {
+  try { return JSON.parse(localStorage.getItem('tl_fav') || '[]'); } catch { return []; }
+}
+function favHas(id) { return favList().includes(Number(id)); }
+function favToggle(id) {
+  let f = favList();
+  id = Number(id);
+  f = f.includes(id) ? f.filter(x => x !== id) : [...f, id];
+  try { localStorage.setItem('tl_fav', JSON.stringify(f)); } catch { /* ignore */ }
+  return f.includes(id);
 }
 async function loadBootstrap() {
   try {
@@ -47,7 +90,7 @@ async function shell(active, mainHtml, opts = {}) {
   await loadBootstrap();
   await loadMe();
   const name = esc(S ? S.academy_name : 'الأكاديمية');
-  document.title = name;
+  document.title = (opts.title ? opts.title + ' | ' : '') + name;
   const role = ME ? ME.role : 'guest';
   const groupsLink = (S && S.enable_groups === '1') ? '<a href="/#groups" data-a="groups">👥 المجموعات</a>' : '';
   let navMain = '', navLegal = '';

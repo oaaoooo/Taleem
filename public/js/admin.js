@@ -1,13 +1,14 @@
 // admin.js — full control panel
 let ST = null;
 (async () => {
-  await shell('', `<div id="aBody"></div>`, { noSide: true });
+  await shell('', `<div id="aBody"></div>`, { noSide: true, title: 'لوحة الإدارة' });
   const main = $('aBody');
   if (!ME || ME.role !== 'admin') {
     main.innerHTML = `<div class="card" style="max-width:400px;margin:30px auto;text-align:center">
       <h3>🎛️ لوحة الإدارة</h3>
       <label class="f">الباسورد</label><input id="aPw" type="password">
       <button class="btn btn-p btn-big" id="aGo">دخول</button></div>`;
+    eyeFor('aPw');
     $('aGo').onclick = async () => {
       const j = await api('/api/admin/login', 'POST', { password: $('aPw').value });
       if (!j.ok) { toast(j.error || 'خطأ'); return; }
@@ -66,6 +67,12 @@ let ST = null;
     if (!j) return;
     badge('bdPay', j.pendingPay); badge('bdApps', j.pendingApps); badge('bdWd', j.pendingWd); badge('bdRev', j.pendingRev);
     const cur = esc(S.currency || '');
+    const WD = ['الأحد', 'الاثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة', 'السبت'];
+    const wk = j.week || [];
+    const wmx = Math.max(1, ...wk.map(x => x.n));
+    const wchart = wk.length ? `<div class="card"><h3 class="sec-t">📊 حجوزات آخر 7 أيام</h3><div class="bars">${
+      wk.map(x => `<div class="bar"><span class="val">${x.n}</span><div class="fill" style="height:${Math.max(3, Math.round(x.n / wmx * 100))}%"></div><span class="cap">${WD[new Date(x.d + 'T12:00:00').getDay()]}</span></div>`).join('')
+    }</div></div>` : '';
     m.innerHTML = `<div class="steps">
       <div class="step"><span class="n">🎓</span>الطلاب<br><b>${j.students}</b></div>
       <div class="step"><span class="n">👨‍🏫</span>المعلمون<br><b>${j.teachers}</b></div>
@@ -73,6 +80,7 @@ let ST = null;
       <div class="step"><span class="n">💵</span>إجمالي الدخل<br><b>${j.revenue} ${cur}</b></div>
       <div class="step"><span class="n">💰</span>عمولتك<br><b>${Math.round(j.commission)} ${cur}</b></div>
     </div>
+    ${wchart}
     <div class="card"><h3 style="margin-top:0">⏳ محتاج مراجعة</h3>
       <div style="display:flex;gap:8px;flex-wrap:wrap">
         <button class="btn btn-a" onclick="goTab('books')">💳 مدفوعات (${j.pendingPay})</button>
@@ -84,6 +92,7 @@ let ST = null;
       <div class="row2"><div><label class="f">الحالي</label><input id="apOld" type="password"></div>
       <div><label class="f">الجديد</label><input id="apNew" type="password"></div></div>
       <button class="btn btn-g" id="apGo" style="margin-top:8px">تغيير</button></div>`;
+    eyeFor('apOld'); eyeFor('apNew');
     $('apGo').onclick = async () => {
       const r = await api('/api/admin/password', 'POST', { old: $('apOld').value, next: $('apNew').value });
       toast(r.ok ? 'اتغير ✅' : (r.error || 'خطأ'));
@@ -97,6 +106,7 @@ let ST = null;
     bkPage = page;
     const pay = ($('fPay') && $('fPay').value) || '';
     const st = ($('fSt') && $('fSt').value) || '';
+    const qq = ($('fQ') && $('fQ').value.trim()) || '';
     if (page === 1 && !m.dataset.bk) {
       m.innerHTML = `<div class="card"><h3 style="margin-top:0">📅 الحجوزات</h3>
         <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px">
@@ -105,15 +115,17 @@ let ST = null;
           <select id="fSt" style="width:auto"><option value="">كل الحالات</option>
             <option value="scheduled">📅 مجدولة</option><option value="done">✔ تمت</option>
             <option value="cancelled">❌ ملغية</option><option value="missed_teacher">⚠️ غياب معلم</option><option value="missed_student">⚠️ غياب طالب</option></select>
+          <input type="search" id="fQ" style="max-width:220px" placeholder="بحث بكود/اسم/رقم 🔍">
           <button class="btn btn-g" id="fGo">عرض 🔍</button>
           <a class="btn btn-b" href="/api/admin/export-bookings">📥 تصدير CSV</a>
         </div><div id="bkList"></div></div>`;
       $('fGo').onclick = () => showBooks(1);
+      $('fQ').onkeydown = (e) => { if (e.key === 'Enter') showBooks(1); };
       m.dataset.bk = '1';
     }
     const box = $('bkList');
     box.innerHTML = '<p class="muted">جاري التحميل...</p>';
-    const j = await api(`/api/admin/bookings?page=${bkPage}` + (pay ? '&pay=' + pay : '') + (st ? '&st=' + st : ''));
+    const j = await api(`/api/admin/bookings?page=${bkPage}` + (pay ? '&pay=' + pay : '') + (st ? '&st=' + st : '') + (qq ? '&q=' + encodeURIComponent(qq) : ''));
     if (!j.ok) return;
     const cur = esc(S.currency || '');
     box.innerHTML = `<div class="table-wrap"><table class="resp">
@@ -154,10 +166,19 @@ let ST = null;
     if (j.ok) showBooks(bkPage);
   };
   window.bkMeet = async (id, old) => {
-    const v = prompt('رابط الاجتماع (زووم/ميت):', old || '');
-    if (v === null) return;
-    const j = await api('/api/admin/booking-meet', 'PUT', { id, meet_link: v });
-    toast(j.ok ? 'تم ✅' : (j.error || 'خطأ'));
+    const { close } = openModal(`
+      <h3 class="sec-t">🎥 رابط الاجتماع</h3>
+      <label class="f">رابط زووم/جوجل ميت</label>
+      <input id="mtLink" dir="ltr" value="${esc(old || '')}" placeholder="https://...">
+      <div class="share-row" style="margin-top:12px">
+        <button class="btn btn-p" id="mtSave">حفظ ✅</button>
+        <button class="btn btn-g" data-close>إلغاء</button>
+      </div>`);
+    $('mtSave').onclick = async () => {
+      const j = await api('/api/admin/booking-meet', 'PUT', { id, meet_link: $('mtLink').value });
+      toast(j.ok ? 'تم ✅' : (j.error || 'خطأ'), 2500, j.ok ? 'ok' : 'err');
+      if (j.ok) close();
+    };
   };
   window.printBk = (b) => {
     const cur = S.currency || '';

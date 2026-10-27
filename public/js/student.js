@@ -4,7 +4,7 @@
       <button data-t="lessons" class="on">📅 حصصي</button>
       <button data-t="profile">👤 بياناتي</button>
       <button data-t="guide">🎥 إزاي أدخل الحصة؟</button>
-    </aside><div class="admin-main" id="dBody"></div></div>`, { noSide: true });
+    </aside><div class="admin-main" id="dBody"></div></div>`, { noSide: true, title: 'لوحتي' });
   if (!ME || ME.role !== 'student') { location.href = '/auth.html?next=/student.html'; return; }
   const main = $('dBody');
   document.querySelectorAll('#dTabs button').forEach(b => b.onclick = () => {
@@ -24,7 +24,15 @@
         <a class="btn btn-p" href="/#teachers">تصفح المعلمين 👨‍🏫</a></div>`;
       return;
     }
-    main.innerHTML = '<div class="grid">' + j.bookings.map(b => {
+    const allBk = j.bookings;
+    let bkF = 'up';
+    const nUp = allBk.filter(b => b.status === 'scheduled').length;
+    main.innerHTML = `<div class="filters"><div class="seg">
+      <button id="fUp" class="on">📅 القادمة (${nUp})</button>
+      <button id="fPast">📜 السابقة (${allBk.length - nUp})</button></div></div><div id="bkGrid"></div>`;
+    const paintBk = () => {
+      const list = allBk.filter(b => bkF === 'up' ? b.status === 'scheduled' : b.status !== 'scheduled');
+      $('bkGrid').innerHTML = '<div class="grid">' + list.map(b => {
       const approved = b.pay_status === 'approved';
       const live = approved && b.status === 'scheduled' && b.meet_link;
       return `<div class="tcard" style="text-align:right">
@@ -47,7 +55,14 @@
           ${b.status === 'done' && approved ? `<button class="btn btn-a" onclick="reviewBk(${b.id},'${esc(b.teacher_name)}')">⭐ قيّم</button>` : ''}
         </div>
       </div>`;
-    }).join('') + '</div>';
+      }).join('') + '</div>';
+      if (!list.length) $('bkGrid').innerHTML = `<div class="empty"><span class="big">📭</span>
+        <p class="muted">${bkF === 'up' ? 'مفيش حصص قادمة — احجز حصتك الجاية 👇' : 'مفيش حصص سابقة'}</p>
+        ${bkF === 'up' ? '<a class="btn btn-p" href="/#teachers">تصفح المعلمين 👨‍🏫</a>' : ''}</div>`;
+    };
+    paintBk();
+    $('fUp').onclick = () => { bkF = 'up'; $('fUp').classList.add('on'); $('fPast').classList.remove('on'); paintBk(); };
+    $('fPast').onclick = () => { bkF = 'past'; $('fPast').classList.add('on'); $('fUp').classList.remove('on'); paintBk(); };
   }
 
   window.cancelBk = async (id) => {
@@ -57,11 +72,21 @@
     if (j.ok) showLessons();
   };
   window.reviewBk = async (id, tname) => {
-    const rating = Number(prompt(`قيّم ${tname} من 1 لـ 5 ⭐`, '5'));
-    if (!rating || rating < 1 || rating > 5) return;
-    const comment = prompt('اكتب رأيك في الحصة (اختياري):', '') || '';
-    const j = await api('/api/s/review', 'POST', { booking_id: id, rating, comment });
-    toast(j.ok ? j.msg : (j.error || 'خطأ'));
+    let stars = 5;
+    const { close } = openModal(`
+      <h3 class="sec-t">⭐ قيّم ${esc(tname)}</h3>
+      <div class="starpick" id="rvStars">${[1, 2, 3, 4, 5].map(i => `<span data-v="${i}">★</span>`).join('')}</div>
+      <label class="f">رأيك في الحصة (اختياري)</label>
+      <textarea id="rvC" placeholder="اكتب رأيك..."></textarea>
+      <button class="btn btn-p btn-big" id="rvGo">إرسال التقييم ✅</button>`);
+    const paint = () => document.querySelectorAll('#rvStars span').forEach(s => s.classList.toggle('lit', Number(s.dataset.v) <= stars));
+    document.querySelectorAll('#rvStars span').forEach(s => s.onclick = () => { stars = Number(s.dataset.v); paint(); });
+    paint();
+    $('rvGo').onclick = async () => {
+      const j = await api('/api/s/review', 'POST', { booking_id: id, rating: stars, comment: $('rvC').value });
+      toast(j.ok ? j.msg : (j.error || 'خطأ'), 3000, j.ok ? 'ok' : 'err');
+      if (j.ok) close();
+    };
   };
 
   function showProfile() {
@@ -83,6 +108,7 @@
       <label class="f">الجديدة (6 حروف على الأقل)</label><input id="pwNew" type="password">
       <button class="btn btn-g btn-big" id="pwGo">تغيير كلمة المرور</button>
     </div>`;
+    eyeFor('pwOld'); eyeFor('pwNew');
     $('pCountry').innerHTML = (S.countries || []).map(c => `<option ${c === ME.country ? 'selected' : ''}>${esc(c)}</option>`).join('');
     $('pGrade').innerHTML = '<option value="">—</option>' + (S.grades || []).map(g => `<option ${g === ME.grade ? 'selected' : ''}>${esc(g)}</option>`).join('');
     $('pSave').onclick = async () => {

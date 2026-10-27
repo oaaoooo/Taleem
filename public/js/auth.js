@@ -41,12 +41,14 @@
   </div>`);
 
   const main = document.querySelector('.main');
+  eyeFor('liPw'); eyeFor('rgPw');
   const next = new URLSearchParams(location.search).get('next') || '';
   const goNext = (role) => {
     if (next) { location.href = next; return; }
     location.href = role === 'teacher' ? '/tutor.html' : '/student.html';
   };
   if (ME) { goNext(ME.role); return; }
+  document.title = 'دخول / حساب جديد | ' + document.title;
 
   // tabs
   $('tabLogin').onclick = () => { $('tabLogin').classList.add('on'); $('tabReg').classList.remove('on'); $('paneLogin').style.display = ''; $('paneReg').style.display = 'none'; };

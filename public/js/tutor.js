@@ -6,7 +6,7 @@
       <button data-t="money">💰 أرباحي والسحب</button>
       <button data-t="page">📝 صفحتي وأسعاري</button>
       <button data-t="pw">🔐 كلمة المرور</button>
-    </aside><div class="admin-main" id="tBody"></div></div>`, { noSide: true });
+    </aside><div class="admin-main" id="tBody"></div></div>`, { noSide: true, title: 'لوحة المعلم' });
   if (!ME || ME.role !== 'teacher') { location.href = '/auth.html?next=/tutor.html'; return; }
   const main = $('tBody');
   document.querySelectorAll('#tTabs button').forEach(b => b.onclick = () => {
@@ -20,10 +20,30 @@
     main.innerHTML = '<div class="card"><p class="muted">جاري التحميل...</p></div>';
     const j = await api('/api/t/bookings');
     if (!j.ok) return;
-    if (!j.bookings.length) { main.innerHTML = '<div class="card"><p class="muted">مفيش حجوزات لسه 📭</p></div>'; return; }
-    main.innerHTML = `<div class="card"><div class="table-wrap"><table class="resp">
+    if (!j.bookings.length) {
+      main.innerHTML = '<div class="card"><div class="empty"><span class="big">📭</span><p class="muted">مفيش حجوزات لسه — شارك صفحتك مع طلابك 👇</p><button class="btn btn-w" onclick="shareMyPage()">مشاركة صفحتي 💬</button></div></div>';
+      return;
+    }
+    const nSch = j.bookings.filter(b => b.status === 'scheduled').length;
+    const nDone = j.bookings.filter(b => b.status === 'done').length;
+    const nPen = j.bookings.filter(b => b.pay_status === 'pending').length;
+    const sumOk = Math.round(j.bookings.filter(b => b.pay_status === 'approved').reduce((a, b) => a + Number(b.teacher_amt || 0), 0) * 100) / 100;
+    const tabBtn = document.querySelector('#tTabs button[data-t="books"]');
+    if (tabBtn) tabBtn.innerHTML = `📅 حجوزاتي${nPen ? ` <span class="bdg">${nPen}</span>` : ''}`;
+    main.innerHTML = `<div class="stat-grid">
+        <div class="stat"><span class="ic">📅</span><span class="lb">مجدولة</span><div class="vl">${nSch}</div></div>
+        <div class="stat"><span class="ic">✔</span><span class="lb">مكتملة</span><div class="vl">${nDone}</div></div>
+        <div class="stat"><span class="ic">⏳</span><span class="lb">دفع معلق</span><div class="vl">${nPen}</div></div>
+        <div class="stat"><span class="ic">💰</span><span class="lb">مستحق معتمد</span><div class="vl">${sumOk}</div></div>
+      </div>
+      <div class="card"><div class="filters"><div class="seg" id="bkSeg">
+        <button data-f="" class="on">الكل</button><button data-f="scheduled">📅 مجدولة</button>
+        <button data-f="done">✔ تمت</button><button data-f="cancelled">❌ ملغية</button>
+      </div></div>
+      <div class="table-wrap"><table class="resp">
       <tr><th>الكود</th><th>الطالب والتواصل</th><th>النوع/المعاد</th><th>الدفع</th><th>الحالة</th><th>إجراءات</th></tr>
-      ${j.bookings.map(b => `<tr>
+      <tbody id="bkRows"></tbody></table></div></div>`;
+    const rowHtml = (b) => `<tr>
         <td data-l="الكود"><b dir="ltr">${esc(b.code)}</b></td>
         <td data-l="الطالب والتواصل"><b>${esc(b.student_name)}</b><br>
           ${b.student_phone ? `📱 <a dir="ltr" href="tel:${esc(b.student_phone)}">${esc(b.student_phone)}</a><br>` : ''}
@@ -37,8 +57,23 @@
           <button class="btn-mini btn-p" style="background:#dcfce7" onclick="bkSt(${b.id},'done')">✔ تمت</button>
           <button class="btn-mini btn-g" onclick="bkSt(${b.id},'missed_student')">⚠️ الطالب غاب</button>
           <button class="btn-mini btn-r" style="background:#fee2e2" onclick="bkSt(${b.id},'cancelled')">إلغاء</button>` : '—'}</td>
-      </tr>`).join('')}</table></div></div>`;
+      </tr>`;
+    const paintT = (f) => {
+      const list = j.bookings.filter(b => !f || b.status === f);
+      $('bkRows').innerHTML = list.map(rowHtml).join('') || '<tr><td colspan="6" class="muted no-l" style="text-align:center">مفيش حجوزات بالحالة دي</td></tr>';
+    };
+    paintT('');
+    document.querySelectorAll('#bkSeg button').forEach(x => x.onclick = () => {
+      document.querySelectorAll('#bkSeg button').forEach(y => y.classList.remove('on'));
+      x.classList.add('on');
+      paintT(x.dataset.f);
+    });
   }
+  window.shareMyPage = () => {
+    const url = location.origin + '/teacher.html?id=' + ME.id;
+    const msg = `احجز حصتك مع ${ME.name} (${ME.subject}) على ${S.academy_name} 🎓\n${url}`;
+    window.open('https://wa.me/?text=' + encodeURIComponent(msg), '_blank');
+  };
   window.bkSt = async (id, status) => {
     const msgs = { done: 'تأكيد إتمام الحصة؟', missed_student: 'الطالب محضرش؟', cancelled: 'تلغي الحجز ده؟' };
     if (!confirm(msgs[status])) return;
@@ -101,8 +136,14 @@
   };
 
   async function showMoney() {
-    const j = await api('/api/t/earnings');
+    const [j, mj] = await Promise.all([api('/api/t/earnings'), api('/api/t/monthly')]);
     if (!j.ok) return;
+    const MN = ['يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو', 'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر'];
+    const mos = (mj.ok && mj.months) || [];
+    const mx = Math.max(1, ...mos.map(x => x.sum));
+    const chart = mos.length ? `<div class="card"><h3 class="sec-t">📊 أرباح آخر 6 شهور (حصص مكتملة)</h3><div class="bars">${
+      mos.map(x => `<div class="bar"><span class="val">${x.sum}</span><div class="fill" style="height:${Math.max(3, Math.round(x.sum / mx * 100))}%"></div><span class="cap">${MN[Number(x.mo.split('-')[1]) - 1]}</span></div>`).join('')
+    }</div><p class="hint">بـ ${cur()}</p></div>` : '';
     main.innerHTML = `<div class="card"><h3 style="margin-top:0">💰 أرباحي</h3>
       <div class="steps">
         <div class="step"><span class="n">💵</span>إجمالي المستحق<br><b>${j.earned} ${cur()}</b></div>
@@ -111,6 +152,7 @@
       </div>
       <p class="muted">الصرف ${esc(j.withdraw_cycle || '')} — الحد الأدنى ${j.withdraw_min} ${cur()} — السحب متاح عن الحصص المكتملة فقط</p>
     </div>
+    ${chart}
     <div class="card"><h3 style="margin-top:0">📤 طلب سحب جديد</h3>
       <div class="row2">
         <div><label class="f">المبلغ (${cur()})</label><input id="wAmt" type="number" min="0"></div>
@@ -145,7 +187,16 @@
       <label class="f">واتساب التواصل 💬</label><input id="tWa" value="${esc(ME.whatsapp || '')}">
       <label class="f">فيديو تعريفي (رابط يوتيوب — اختياري) 🎬</label><input id="tVid" dir="ltr" value="${esc(ME.video_url || '')}">
       <button class="btn btn-p btn-big" id="tSave">حفظ ✅</button>
+      <div class="share-row">
+        <button class="btn btn-w" onclick="shareMyPage()">مشاركة صفحتي واتساب 💬</button>
+        <button class="btn btn-b" id="copyPage">📋 نسخ رابط صفحتي</button>
+      </div>
+      <p class="hint">👁 <a href="/teacher.html?id=${ME.id}" target="_blank">معاينة صفحتي كما يراها الطلاب</a></p>
     </div>`;
+    $('copyPage').onclick = async () => {
+      try { await navigator.clipboard.writeText(location.origin + '/teacher.html?id=' + ME.id); toast('اتنسخ الرابط 📋', 2000, 'ok'); }
+      catch { toast('انسخ الرابط يدويًا من المعاينة', 3000, 'err'); }
+    };
     $('tAvatar').onchange = async (e) => {
       const f = e.target.files[0];
       if (!f) return;
@@ -172,6 +223,7 @@
       <label class="f">الحالية</label><input id="pwOld" type="password">
       <label class="f">الجديدة</label><input id="pwNew" type="password">
       <button class="btn btn-p btn-big" id="pwGo">تغيير</button></div>`;
+    eyeFor('pwOld'); eyeFor('pwNew');
     $('pwGo').onclick = async () => {
       const j = await api('/api/t/password', 'PUT', { old: $('pwOld').value, next: $('pwNew').value });
       toast(j.ok ? 'اتغيرت ✅' : (j.error || 'خطأ'));

@@ -213,7 +213,7 @@ export async function createApp({ q, sessionSecret }) {
     });
   }
 
-  const PUB_KEYS = ['academy_name', 'tagline', 'currency', 'enable_private', 'enable_groups',
+  const PUB_KEYS = ['academy_name', 'tagline', 'currency', 'commission_default', 'enable_private', 'enable_groups',
     'req_student_phone', 'req_guardian_phone', 'subjects', 'grades', 'admin_whatsapp',
     'announcement', 'pay_methods', 'withdraw_min', 'withdraw_cycle', 'cancel_hours', 'meet_guide'];
   const parseJSON = (s, fb) => { try { const v = JSON.parse(s || ''); return v === undefined ? fb : v; } catch { return fb; } };
@@ -665,6 +665,26 @@ export async function createApp({ q, sessionSecret }) {
     return c.json({ ok: true, msg: 'طلبك اتسجل وهيتحوّل في دورة الصرف 🙏' });
   });
 
+  app.get('/api/t/monthly', need('teacher'), async (c) => {
+    const u = c.get('u');
+    const r = await q`SELECT teacher_amt, created_at FROM bookings WHERE teacher_id = ${u.id}
+      AND pay_status = 'approved' AND status = 'done' ORDER BY id DESC LIMIT 2000`;
+    const now = new Date();
+    const mos = [];
+    for (let i = 5; i >= 0; i--) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      mos.push(d.toISOString().slice(0, 7));
+    }
+    return c.json({
+      ok: true,
+      months: mos.map(mo => ({
+        mo,
+        sum: Math.round(r.rows.filter(x => String(x.created_at || '').slice(0, 7) === mo)
+          .reduce((a, x) => a + (Number(x.teacher_amt) || 0), 0) * 100) / 100
+      }))
+    });
+  });
+
   // ============================================================
   // IMAGES (teacher avatars — compressed client-side)
   // ============================================================
@@ -709,9 +729,19 @@ export async function createApp({ q, sessionSecret }) {
     const revenue = await sum`SELECT COALESCE(SUM(price),0) s FROM bookings WHERE pay_status = 'approved' AND status != 'cancelled'`;
     const commission = await sum`SELECT COALESCE(SUM(price - teacher_amt),0) s FROM bookings WHERE pay_status = 'approved' AND status != 'cancelled'`;
     const today = await one`SELECT COUNT(*) c FROM bookings WHERE created_at >= ${dayStart}`;
+    const recent = await q`SELECT created_at FROM bookings ORDER BY id DESC LIMIT 500`;
+    const days = [];
+    for (let i = 6; i >= 0; i--) {
+      const d = new Date();
+      d.setDate(d.getDate() - i);
+      days.push(d.toISOString().slice(0, 10));
+    }
+    const week = days.map(d => ({
+      d, n: recent.rows.filter(r => String(r.created_at || '').slice(0, 10) === d).length
+    }));
     return c.json({
       ok: true, students, teachers, bookings, total: bookings, revenue, commission,
-      today, pendingPay: newPay, pendingApps: apps, pendingWd: wds, pendingRev: revs,
+      today, pendingPay: newPay, pendingApps: apps, pendingWd: wds, pendingRev: revs, week,
       payAr: PAY_AR, bookAr: BOOK_AR, kindAr: KIND_AR, wdAr: WD_AR
     });
   });
@@ -721,6 +751,7 @@ export async function createApp({ q, sessionSecret }) {
     const page = Math.max(1, parseInt(c.req.query('page')) || 1);
     const pay = (c.req.query('pay') || '').trim();
     const st = (c.req.query('st') || '').trim();
+    const qq = (c.req.query('q') || '').trim();
     let rows = (await q`SELECT b.*, s.name AS student_name, s.phone AS student_phone, s.guardian_phone,
         t.name AS teacher_name, t.subject, g.title AS group_title
       FROM bookings b JOIN students s ON s.id = b.student_id
@@ -728,6 +759,7 @@ export async function createApp({ q, sessionSecret }) {
       LEFT JOIN groups g ON g.id = b.group_id ORDER BY b.id DESC`).rows;
     if (pay) rows = rows.filter(r => r.pay_status === pay);
     if (st) rows = rows.filter(r => r.status === st);
+    if (qq) rows = rows.filter(r => [r.code, r.student_name, r.student_phone, r.guardian_phone, r.teacher_name, r.subject].join(' ').includes(qq));
     const pages = Math.max(1, Math.ceil(rows.length / PAGE));
     const pg = Math.min(page, pages);
     return c.json({
@@ -973,7 +1005,10 @@ export async function createApp({ q, sessionSecret }) {
   app.get('/sitemap.xml', async (c) => {
     const host = new URL(c.req.url).origin;
     const d = new Date().toISOString().slice(0, 10);
-    return new Response(`<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n  <url>\n    <loc>${host}/</loc>\n    <lastmod>${d}</lastmod>\n    <changefreq>weekly</changefreq>\n    <priority>1.0</priority>\n  </url>\n</urlset>`, { headers: { 'Content-Type': 'application/xml' } });
+    const tr = await q`SELECT id FROM teachers WHERE active = 1 ORDER BY id`;
+    const urls = [`  <url>\n    <loc>${host}/</loc>\n    <lastmod>${d}</lastmod>\n    <changefreq>weekly</changefreq>\n    <priority>1.0</priority>\n  </url>`,
+      ...tr.rows.map(t => `  <url>\n    <loc>${host}/teacher?id=${t.id}</loc>\n    <lastmod>${d}</lastmod>\n    <changefreq>weekly</changefreq>\n    <priority>0.8</priority>\n  </url>`)];
+    return new Response(`<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urls.join('\n')}\n</urlset>`, { headers: { 'Content-Type': 'application/xml' } });
   });
 
   return { app };
