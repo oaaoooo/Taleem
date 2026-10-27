@@ -132,3 +132,22 @@ th { background: #f8fafc; white-space: nowrap; }
   .admin-side { width: 100%; position: static; flex-direction: row; overflow-x: auto; }
   .admin-side button { white-space: nowrap; }
 }
+
+/* ===== mobile drawer nav ===== */
+.menu-btn { display: none; background: none; border: none; color: #fff; font-size: 24px; cursor: pointer; padding: 2px 8px; }
+.side-x { display: none; }
+.side-backdrop { display: none; }
+@media (max-width: 760px) {
+  .menu-btn { display: block; }
+  .sidebar, .admin-side {
+    position: fixed; top: 0; bottom: 0; right: 0; width: min(78vw, 300px); z-index: 150;
+    border-radius: 0; margin: 0; flex-direction: column; overflow-y: auto; overflow-x: hidden;
+    transform: translateX(105%); transition: transform .25s ease; padding: 12px 10px;
+  }
+  .sidebar.open, .admin-side.open { transform: translateX(0); box-shadow: -4px 0 20px rgba(0,0,0,.25); }
+  .sidebar .sec { display: block; }
+  .side-x { display: block; background: #fee2e2; border: none; border-radius: 50%; width: 32px; height: 32px;
+    cursor: pointer; font-size: 15px; align-self: flex-start; margin-bottom: 6px; }
+  .side-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,.5); z-index: 140; }
+  .side-backdrop.show { display: block; }
+}

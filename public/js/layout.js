@@ -56,6 +56,7 @@ async function shell(active, mainHtml, opts = {}) {
     ? '<a class="btn btn-a" style="padding:7px 14px" href="/auth.html">دخول / حساب جديد</a>'
     : `<span class="u">أهلًا ${esc(ME.name)}</span> <button class="btn btn-g" style="padding:7px 14px" id="logoutBtn">خروج</button>`;
   const sideHtml = `<aside class="sidebar">
+        <button class="side-x" id="sideX">✕</button>
         <a href="/" data-a="home">🏠 الرئيسية</a>
         <a href="/#teachers" data-a="teachers">👨‍🏫 المعلمون</a>
         <a href="/#groups" data-a="groups">👥 المجموعات</a>
@@ -69,9 +70,11 @@ async function shell(active, mainHtml, opts = {}) {
       </aside>`;
   document.body.innerHTML = `
     <div class="topbar">
+      <button class="menu-btn" id="menuBtn" aria-label="القائمة">☰</button>
       <a class="brand" href="/">🎓 ${name}</a>
       <span class="sp"></span>${authBtn}
     </div>
+    <div class="side-backdrop" id="sideBackdrop"></div>
     ${S && S.announcement ? `<div class="announce">${esc(S.announcement)}</div>` : ''}
     <div class="shell">
       ${opts.noSide ? '' : sideHtml}
@@ -89,6 +92,31 @@ async function shell(active, mainHtml, opts = {}) {
   });
   const lo = $('logoutBtn');
   if (lo) lo.onclick = async () => { await api('/api/logout', 'POST'); location.href = '/'; };
+
+  // mobile drawer nav (works for site sidebar + dashboard sidebars)
+  const syncDrawer = () => {
+    document.querySelectorAll('.admin-side:not([data-x])').forEach(a => {
+      a.dataset.x = '1';
+      const x = document.createElement('button');
+      x.className = 'side-x'; x.textContent = '✕';
+      a.prepend(x);
+    });
+    const mb = $('menuBtn');
+    if (mb) mb.style.visibility = document.querySelector('.sidebar, .admin-side') ? '' : 'hidden';
+  };
+  new MutationObserver(syncDrawer).observe(document.body, { childList: true, subtree: true });
+  syncDrawer();
+  document.addEventListener('click', (e) => {
+    const bd = $('sideBackdrop');
+    if (e.target.closest('#menuBtn')) {
+      const s = document.querySelector('.sidebar, .admin-side');
+      if (s) { s.classList.add('open'); if (bd) bd.classList.add('show'); }
+    } else if (e.target.closest('.side-x') || e.target.closest('#sideBackdrop') ||
+        e.target.closest('.sidebar a') || e.target.closest('.admin-side button:not(.side-x)')) {
+      document.querySelectorAll('.sidebar.open, .admin-side.open').forEach(s => s.classList.remove('open'));
+      if (bd) bd.classList.remove('show');
+    }
+  });
 }
 
 // compress + resize image client-side (free, keeps DB tiny)
