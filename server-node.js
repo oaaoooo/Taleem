@@ -29,9 +29,11 @@ app.use('/*', async (c, next) => {
   const p = new URL(c.req.url).pathname;
   if (p.startsWith('/api/') || p.startsWith('/img/') || p === '/health' || p === '/admin') return next();
   const f = p === '/' ? '/index.html' : decodeURIComponent(p);
-  const fp = path.join(PUB, f);
+  let fp = path.join(PUB, f);
   if (!fp.startsWith(PUB)) return next();
   try {
+    try { await fs.promises.access(fp); }
+    catch { if (!path.extname(fp)) fp = fp + '.html'; }
     const data = await fs.promises.readFile(fp);
     return new Response(data, {
       headers: {

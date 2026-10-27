@@ -1,5 +1,6 @@
 // site.js — home + teacher profile + booking modal
-const isTeacherPage = location.pathname.includes('teacher.html');
+// works with both /teacher.html (local) and /teacher (Cloudflare clean URLs)
+const isTeacherPage = /\/teacher(\.html)?$/.test(location.pathname);
 
 function teacherCard(t) {
   const cur = esc(S.currency || '');
