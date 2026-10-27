@@ -1,12 +1,12 @@
 // tutor.js — teacher panel
 (async () => {
-  await shell('', `<div class="tabs" id="tTabs">
+  await shell('', `<div class="admin-layout"><aside class="admin-side" id="tTabs">
       <button data-t="books" class="on">📅 حجوزاتي</button>
       <button data-t="groups">👥 مجموعاتي</button>
       <button data-t="money">💰 أرباحي والسحب</button>
       <button data-t="page">📝 صفحتي وأسعاري</button>
       <button data-t="pw">🔐 كلمة المرور</button>
-    </div><div id="tBody"></div>`, { noSide: true });
+    </aside><div class="admin-main" id="tBody"></div></div>`, { noSide: true });
   if (!ME || ME.role !== 'teacher') { location.href = '/auth.html?next=/tutor.html'; return; }
   const main = $('tBody');
   document.querySelectorAll('#tTabs button').forEach(b => b.onclick = () => {

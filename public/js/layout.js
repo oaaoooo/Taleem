@@ -51,7 +51,7 @@ async function shell(active, mainHtml, opts = {}) {
   const dashLink = !ME ? ''
     : ME.role === 'student' ? '<a href="/student.html">🎓 لوحتي</a>'
     : ME.role === 'teacher' ? '<a href="/tutor.html">👨‍🏫 لوحة المعلم</a>'
-    : '<a href="/admin.html">🎛️ الإدارة</a>';
+    : '';
   const authBtn = !ME
     ? '<a class="btn btn-a" style="padding:7px 14px" href="/auth.html">دخول / حساب جديد</a>'
     : `<span class="u">أهلًا ${esc(ME.name)}</span> <button class="btn btn-g" style="padding:7px 14px" id="logoutBtn">خروج</button>`;

@@ -1,10 +1,10 @@
 // student.js — student dashboard
 (async () => {
-  await shell('', `<div class="tabs" id="dTabs">
+  await shell('', `<div class="admin-layout"><aside class="admin-side" id="dTabs">
       <button data-t="lessons" class="on">📅 حصصي</button>
       <button data-t="profile">👤 بياناتي</button>
       <button data-t="guide">🎥 إزاي أدخل الحصة؟</button>
-    </div><div id="dBody"></div>`, { noSide: true });
+    </aside><div class="admin-main" id="dBody"></div></div>`, { noSide: true });
   if (!ME || ME.role !== 'student') { location.href = '/auth.html?next=/student.html'; return; }
   const main = $('dBody');
   document.querySelectorAll('#dTabs button').forEach(b => b.onclick = () => {
