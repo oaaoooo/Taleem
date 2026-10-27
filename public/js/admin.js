@@ -116,17 +116,17 @@ let ST = null;
     const j = await api(`/api/admin/bookings?page=${bkPage}` + (pay ? '&pay=' + pay : '') + (st ? '&st=' + st : ''));
     if (!j.ok) return;
     const cur = esc(S.currency || '');
-    box.innerHTML = `<div class="table-wrap"><table>
+    box.innerHTML = `<div class="table-wrap"><table class="resp">
       <tr><th>الكود</th><th>الطالب</th><th>المعلم/النوع</th><th>الدفع والإثبات</th><th>الحالة</th><th>إجراءات</th></tr>
       ${j.bookings.map(b => `<tr>
-        <td><b dir="ltr">${esc(b.code)}</b><br><small class="muted">${esc(String(b.created_at || '').slice(0, 10))}</small></td>
-        <td><b>${esc(b.student_name)}</b><br><small dir="ltr">${esc(b.student_phone || '')}</small><br>
+        <td data-l="الكود"><b dir="ltr">${esc(b.code)}</b><br><small class="muted">${esc(String(b.created_at || '').slice(0, 10))}</small></td>
+        <td data-l="الطالب"><b>${esc(b.student_name)}</b><br><small dir="ltr">${esc(b.student_phone || '')}</small><br>
           ${b.guardian_phone ? `<a dir="ltr" href="${waLink(b.guardian_phone)}" target="_blank">💬 ${esc(b.guardian_phone)}</a>` : ''}</td>
-        <td>${esc(b.teacher_name)}<br><small>${esc(S.kindAr[b.kind])} ${b.group_title ? '— ' + esc(b.group_title) : ''}</small><br>
+        <td data-l="المعلم/النوع">${esc(b.teacher_name)}<br><small>${esc(S.kindAr[b.kind])} ${b.group_title ? '— ' + esc(b.group_title) : ''}</small><br>
           <small>${esc(b.slot || '')}</small><br><small>💰 ${b.price} ${cur} (المعلم: ${b.teacher_amt})</small></td>
-        <td><span class="pill">${esc(S.payAr[b.pay_status])}</span><br><small>${esc(b.pay_method)}</small><br><small>🧾 ${esc(b.pay_proof)}</small></td>
-        <td><span class="pill">${esc(S.bookAr[b.status])}</span></td>
-        <td style="min-width:170px">
+        <td data-l="الدفع"><span class="pill">${esc(S.payAr[b.pay_status])}</span><br><small>${esc(b.pay_method)}</small><br><small>🧾 ${esc(b.pay_proof)}</small></td>
+        <td data-l="الحالة"><span class="pill">${esc(S.bookAr[b.status])}</span></td>
+        <td data-l="إجراءات" style="min-width:170px">
           ${b.pay_status === 'pending' ? `<button class="btn-mini btn-p" style="background:#dcfce7" onclick="bkPay(${b.id},'approved')">اعتماد الدفع ✅</button>
             <button class="btn-mini btn-r" style="background:#fee2e2" onclick="bkPay(${b.id},'rejected')">رفض ❌</button><br>` : ''}
           <select id="st${b.id}" style="width:auto;padding:4px;font-size:12px">
@@ -135,7 +135,7 @@ let ST = null;
           <button class="btn-mini btn-g" onclick="bkSt(${b.id})">حفظ</button><br>
           <button class="btn-mini btn-b" style="background:#dbeafe" onclick="bkMeet(${b.id},'${esc(b.meet_link || '')}')">🎥 الرابط</button>
           <button class="btn-mini btn-g" onclick='printBk(${JSON.stringify({ code: b.code, student: b.student_name, phone: b.student_phone, teacher: b.teacher_name, kind: S.kindAr[b.kind], slot: b.slot, price: b.price, pay: b.pay_method })})'>🖨 إيصال</button>
-        </td></tr>`).join('') || '<tr><td colspan="6" class="muted">مفيش حجوزات</td></tr>'}</table></div>
+        </td></tr>`).join('') || '<tr><td colspan="6" class="muted no-l">مفيش حجوزات</td></tr>'}</table></div>
       <div style="margin-top:8px;display:flex;gap:8px;align-items:center">
         <button class="btn btn-g" ${j.page <= 1 ? 'disabled' : ''} onclick="bkPg(-1)">→ السابق</button>
         <span class="muted">صفحة ${j.page} من ${j.pages} (${j.total})</span>
@@ -285,11 +285,11 @@ let ST = null;
     const load = async () => {
       const j = await api('/api/admin/students?q=' + encodeURIComponent($('sq').value));
       if (!j.ok) return;
-      $('stList').innerHTML = `<div class="table-wrap"><table><tr><th>الاسم</th><th>الأرقام</th><th>الدولة/الصف</th><th>حجوزات</th><th>إجراءات</th></tr>
-        ${j.students.map(s => `<tr><td><b>${esc(s.name)}</b> ${s.active ? '' : '<span class="pill">⏸ موقوف</span>'}</td>
-          <td>📱 <span dir="ltr">${esc(s.phone || '—')}</span><br>👨‍👩‍👦 ${s.guardian_phone ? `<a dir="ltr" href="${waLink(s.guardian_phone)}" target="_blank">💬 ${esc(s.guardian_phone)}</a>` : '—'}</td>
-          <td>${esc(s.country || '')} / ${esc(s.grade || '')}</td><td>${s.bookings}</td>
-          <td><button class="btn-mini btn-g" onclick="stToggle(${s.id})">${s.active ? 'إيقاف ⏸' : 'تشغيل ▶'}</button>
+      $('stList').innerHTML = `<div class="table-wrap"><table class="resp"><tr><th>الاسم</th><th>الأرقام</th><th>الدولة/الصف</th><th>حجوزات</th><th>إجراءات</th></tr>
+        ${j.students.map(s => `<tr><td data-l="الاسم"><b>${esc(s.name)}</b> ${s.active ? '' : '<span class="pill">⏸ موقوف</span>'}</td>
+          <td data-l="الأرقام">📱 <span dir="ltr">${esc(s.phone || '—')}</span><br>👨‍👩‍👦 ${s.guardian_phone ? `<a dir="ltr" href="${waLink(s.guardian_phone)}" target="_blank">💬 ${esc(s.guardian_phone)}</a>` : '—'}</td>
+          <td data-l="الدولة/الصف">${esc(s.country || '')} / ${esc(s.grade || '')}</td><td data-l="حجوزات">${s.bookings}</td>
+          <td data-l="إجراءات"><button class="btn-mini btn-g" onclick="stToggle(${s.id})">${s.active ? 'إيقاف ⏸' : 'تشغيل ▶'}</button>
           <button class="btn-mini btn-b" style="background:#dbeafe" onclick="stPw(${s.id},'${esc(s.name)}')">🔑 باسورد</button>
           <button class="btn-mini btn-r" style="background:#fee2e2" onclick="stDel(${s.id})">حذف</button></td></tr>`).join('')}</table></div>`;
     };
@@ -323,10 +323,10 @@ let ST = null;
     const j = await api('/api/admin/groups');
     if (!j.ok) return;
     m.innerHTML = `<div class="card"><h3 style="margin-top:0">👥 المجموعات (${j.groups.length})</h3>
-      <div class="table-wrap"><table><tr><th>المجموعة</th><th>المعلم</th><th>الأعضاء</th><th>السعر</th><th>إجراءات</th></tr>
-      ${j.groups.map(g => `<tr><td><b>${esc(g.title)}</b> ${g.active ? '' : '<span class="pill">⏸</span>'}<br><small class="muted">${esc(g.schedule_text || '')}</small></td>
-        <td>${esc(g.teacher_name)}</td><td>${g.members}/${g.max_seats}</td><td>${g.price}</td>
-        <td><button class="btn-mini btn-g" onclick="gAdm(${g.id},'toggle')">${g.active ? 'إيقاف' : 'تشغيل'}</button>
+      <div class="table-wrap"><table class="resp"><tr><th>المجموعة</th><th>المعلم</th><th>الأعضاء</th><th>السعر</th><th>إجراءات</th></tr>
+      ${j.groups.map(g => `<tr><td data-l="المجموعة"><b>${esc(g.title)}</b> ${g.active ? '' : '<span class="pill">⏸</span>'}<br><small class="muted">${esc(g.schedule_text || '')}</small></td>
+        <td data-l="المعلم">${esc(g.teacher_name)}</td><td data-l="الأعضاء">${g.members}/${g.max_seats}</td><td data-l="السعر">${g.price}</td>
+        <td data-l="إجراءات"><button class="btn-mini btn-g" onclick="gAdm(${g.id},'toggle')">${g.active ? 'إيقاف' : 'تشغيل'}</button>
         <button class="btn-mini btn-r" style="background:#fee2e2" onclick="gAdm(${g.id},'delete')">حذف</button></td></tr>`).join('')}</table></div></div>`;
   }
   window.gAdm = async (id, act) => {
@@ -341,12 +341,12 @@ let ST = null;
     if (!j.ok) return;
     const cur = esc(S.currency || '');
     m.innerHTML = `<div class="card"><h3 style="margin-top:0">💰 طلبات السحب</h3>
-      <div class="table-wrap"><table><tr><th>المعلم</th><th>المبلغ</th><th>الاستلام</th><th>الحالة</th><th>إجراءات</th></tr>
-      ${j.withdrawals.map(w => `<tr><td><b>${esc(w.teacher_name)}</b><br><small dir="ltr">${esc(w.teacher_phone || '')}</small><br><small class="muted">${esc(String(w.created_at || '').slice(0, 10))}</small></td>
-        <td><b>${w.amount} ${cur}</b></td><td>${esc(w.method)}<br><small dir="ltr">${esc(w.account)}</small></td>
-        <td><span class="pill">${esc(S.wdAr[w.status])}</span></td>
-        <td>${w.status === 'pending' ? `<button class="btn-mini btn-p" style="background:#dcfce7" onclick="wdGo(${w.id},'paid')">تم التحويل ✅</button>
-          <button class="btn-mini btn-r" style="background:#fee2e2" onclick="wdGo(${w.id},'rejected')">رفض</button>` : '—'}</td></tr>`).join('') || '<tr><td colspan="5" class="muted">مفيش طلبات</td></tr>'}</table></div></div>`;
+      <div class="table-wrap"><table class="resp"><tr><th>المعلم</th><th>المبلغ</th><th>الاستلام</th><th>الحالة</th><th>إجراءات</th></tr>
+      ${j.withdrawals.map(w => `<tr><td data-l="المعلم"><b>${esc(w.teacher_name)}</b><br><small dir="ltr">${esc(w.teacher_phone || '')}</small><br><small class="muted">${esc(String(w.created_at || '').slice(0, 10))}</small></td>
+        <td data-l="المبلغ"><b>${w.amount} ${cur}</b></td><td data-l="الاستلام">${esc(w.method)}<br><small dir="ltr">${esc(w.account)}</small></td>
+        <td data-l="الحالة"><span class="pill">${esc(S.wdAr[w.status])}</span></td>
+        <td data-l="إجراءات">${w.status === 'pending' ? `<button class="btn-mini btn-p" style="background:#dcfce7" onclick="wdGo(${w.id},'paid')">تم التحويل ✅</button>
+          <button class="btn-mini btn-r" style="background:#fee2e2" onclick="wdGo(${w.id},'rejected')">رفض</button>` : '—'}</td></tr>`).join('') || '<tr><td colspan="5" class="muted no-l">مفيش طلبات</td></tr>'}</table></div></div>`;
   }
   window.wdGo = async (id, act) => {
     const j = await api('/api/admin/withdrawals/' + id, 'POST', { act });

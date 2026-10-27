@@ -21,19 +21,19 @@
     const j = await api('/api/t/bookings');
     if (!j.ok) return;
     if (!j.bookings.length) { main.innerHTML = '<div class="card"><p class="muted">مفيش حجوزات لسه 📭</p></div>'; return; }
-    main.innerHTML = `<div class="card"><div class="table-wrap"><table>
+    main.innerHTML = `<div class="card"><div class="table-wrap"><table class="resp">
       <tr><th>الكود</th><th>الطالب والتواصل</th><th>النوع/المعاد</th><th>الدفع</th><th>الحالة</th><th>إجراءات</th></tr>
       ${j.bookings.map(b => `<tr>
-        <td><b dir="ltr">${esc(b.code)}</b></td>
-        <td><b>${esc(b.student_name)}</b><br>
+        <td data-l="الكود"><b dir="ltr">${esc(b.code)}</b></td>
+        <td data-l="الطالب والتواصل"><b>${esc(b.student_name)}</b><br>
           ${b.student_phone ? `📱 <a dir="ltr" href="tel:${esc(b.student_phone)}">${esc(b.student_phone)}</a><br>` : ''}
           ${b.guardian_phone ? `👨‍👩‍👦 <a dir="ltr" href="${waLink(b.guardian_phone)}" target="_blank">${esc(b.guardian_phone)}</a> 💬<br>` : ''}
           <small class="muted">${esc(b.country || '')}</small></td>
-        <td>${esc(S.kindAr[b.kind])}${b.group_title ? '<br>' + esc(b.group_title) : ''}<br><small>${esc(b.slot || '')}</small></td>
-        <td><span class="pill">${esc(S.payAr[b.pay_status])}</span><br><small>${b.price} ${cur()} (ليك ${b.teacher_amt})</small></td>
-        <td><span class="pill">${esc(S.bookAr[b.status])}</span>
+        <td data-l="النوع/المعاد">${esc(S.kindAr[b.kind])}${b.group_title ? '<br>' + esc(b.group_title) : ''}<br><small>${esc(b.slot || '')}</small></td>
+        <td data-l="الدفع"><span class="pill">${esc(S.payAr[b.pay_status])}</span><br><small>${b.price} ${cur()} (ليك ${b.teacher_amt})</small></td>
+        <td data-l="الحالة"><span class="pill">${esc(S.bookAr[b.status])}</span>
           ${b.status === 'scheduled' && b.meet_link ? `<br><a href="${esc(b.meet_link)}" target="_blank">🎥 ابدأ الحصة</a>` : ''}</td>
-        <td>${b.status === 'scheduled' ? `
+        <td data-l="إجراءات">${b.status === 'scheduled' ? `
           <button class="btn-mini btn-p" style="background:#dcfce7" onclick="bkSt(${b.id},'done')">✔ تمت</button>
           <button class="btn-mini btn-g" onclick="bkSt(${b.id},'missed_student')">⚠️ الطالب غاب</button>
           <button class="btn-mini btn-r" style="background:#fee2e2" onclick="bkSt(${b.id},'cancelled')">إلغاء</button>` : '—'}</td>
@@ -88,11 +88,11 @@
     box.innerHTML = '<p class="muted">جاري التحميل...</p>';
     const j = await api('/api/t/group-members/' + id);
     if (!j.ok) { box.innerHTML = ''; return; }
-    box.innerHTML = `<div class="table-wrap"><table style="margin-top:8px">
+    box.innerHTML = `<div class="table-wrap"><table class="resp" style="margin-top:8px">
       <tr><th>الطالب</th><th>التواصل</th><th>الدفع</th></tr>
-      ${j.members.map(m => `<tr><td>${esc(m.name)}</td>
-        <td>${m.phone ? `<a dir="ltr" href="tel:${esc(m.phone)}">${esc(m.phone)}</a> ` : ''}${m.guardian_phone ? `<a dir="ltr" href="${waLink(m.guardian_phone)}" target="_blank">${esc(m.guardian_phone)}</a> 💬` : ''}</td>
-        <td><span class="pill">${esc(S.payAr[m.pay_status])}</span></td></tr>`).join('') || '<tr><td colspan="3" class="muted">مفيش أعضاء</td></tr>'}</table></div>`;
+      ${j.members.map(m => `<tr><td data-l="الطالب">${esc(m.name)}</td>
+        <td data-l="التواصل">${m.phone ? `<a dir="ltr" href="tel:${esc(m.phone)}">${esc(m.phone)}</a> ` : ''}${m.guardian_phone ? `<a dir="ltr" href="${waLink(m.guardian_phone)}" target="_blank">${esc(m.guardian_phone)}</a> 💬` : ''}</td>
+        <td data-l="الدفع"><span class="pill">${esc(S.payAr[m.pay_status])}</span></td></tr>`).join('') || '<tr><td colspan="3" class="muted no-l">مفيش أعضاء</td></tr>'}</table></div>`;
   };
   window.gToggle = async (id, active, price, title, grade, seats, sched, meet) => {
     const j = await api('/api/t/groups/' + id, 'PUT', { title, grade, price, max_seats: seats, schedule_text: sched, meet_link: meet, active });
@@ -120,9 +120,9 @@
       <button class="btn btn-p" id="wGo" style="margin-top:10px">إرسال الطلب 📩</button>
     </div>
     <div class="card"><h3 style="margin-top:0">📋 طلبات السحب</h3>
-      <div class="table-wrap"><table><tr><th>التاريخ</th><th>المبلغ</th><th>الطريقة</th><th>الحالة</th></tr>
-      ${j.withdrawals.map(w => `<tr><td>${esc(String(w.created_at || '').slice(0, 10))}</td><td>${w.amount} ${cur()}</td>
-        <td>${esc(w.method)}<br><small dir="ltr">${esc(w.account)}</small></td><td><span class="pill">${esc(S.wdAr[w.status])}</span></td></tr>`).join('') || '<tr><td colspan="4" class="muted">مفيش طلبات</td></tr>'}</table></div>
+      <div class="table-wrap"><table class="resp"><tr><th>التاريخ</th><th>المبلغ</th><th>الطريقة</th><th>الحالة</th></tr>
+      ${j.withdrawals.map(w => `<tr><td data-l="التاريخ">${esc(String(w.created_at || '').slice(0, 10))}</td><td data-l="المبلغ">${w.amount} ${cur()}</td>
+        <td data-l="الطريقة">${esc(w.method)}<br><small dir="ltr">${esc(w.account)}</small></td><td data-l="الحالة"><span class="pill">${esc(S.wdAr[w.status])}</span></td></tr>`).join('') || '<tr><td colspan="4" class="muted no-l">مفيش طلبات</td></tr>'}</table></div>
     </div>`;
     $('wGo').onclick = async () => {
       const r = await api('/api/t/withdraw', 'POST', { amount: $('wAmt').value, method: $('wMethod').value, account: $('wAcc').value });

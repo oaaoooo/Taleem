@@ -151,3 +151,15 @@ th { background: #f8fafc; white-space: nowrap; }
   .side-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,.5); z-index: 140; }
   .side-backdrop.show { display: block; }
 }
+
+/* ===== responsive tables: rows become stacked cards on mobile ===== */
+@media (max-width: 760px) {
+  table.resp thead, table.resp tr:has(> th) { display: none; }
+  table.resp, table.resp tbody, table.resp tr, table.resp td { display: block; width: 100%; }
+  table.resp { background: none; }
+  table.resp tr { background: #fff; border: 1px solid var(--line); border-radius: 12px; margin-bottom: 10px; padding: 4px 12px; }
+  table.resp td { border: none; border-bottom: 1px dashed #f0f0f0; padding: 7px 2px; }
+  table.resp td:last-child { border-bottom: none; }
+  table.resp td::before { content: attr(data-l); display: block; font-size: 11px; color: var(--mut); margin-bottom: 2px; }
+  table.resp td.no-l::before, table.resp td:not([data-l])::before { display: none; }
+}
